@@ -1,6 +1,8 @@
 from tkinter import *
+
+import requests
 import tkintermapview
-from tkintermapview import map_widget
+from bs4 import BeautifulSoup
 
 # settings
 users = []
@@ -12,12 +14,25 @@ class User:
         self.surname = surname
         self.posts = posts
         self.location = location
+        self.wspolrzedne = User.wspolrzedne(self)
+
+    def wspolrzedne(self) -> list:
+        url: str = f'https://pl.wikipedia.org/wiki/{self.location}'
+        response = requests.get(url)
+        response_html = BeautifulSoup(response.text, 'html.parser')
+
+        return [
+        float(response_html.select('.latitude')[1].text.replace(",", ".")),
+        float(response_html.select('.longitude')[1].text.replace(",", "."))
+        ]
 
 
 def lista_uzytkownikow():
     listbox_lista_obiektow.delete(0, END)
     for idx, user in enumerate(users):
         listbox_lista_obiektow.insert(idx, f'{user.name}  {user.surname} {user.posts} {user.location}')
+        user.marker = map_widget.set_marker(user.wspolrzedne[0], user.wspolrzedne[1],
+                                            text=f"{user.name}")
 
 
 def dodaj_uzytkownika():
@@ -27,6 +42,7 @@ def dodaj_uzytkownika():
     lokalizacja = entry_lokalizacja.get()
     print(imie, nazwisko, posty, lokalizacja)
     users.append(User(imie, nazwisko, posty, lokalizacja))
+
     lista_uzytkownikow()
 
     entry_imie.delete(0, END)
@@ -54,6 +70,8 @@ def pokaz_szczegoly_uzytkownikow():
     label_posty_szczegoly_obiektu_wartosc.config(text=posty)
     lokalizacja = users[i].location
     label_lokalizacja_szczegoly_obiektu_wartosc.config(text=lokalizacja)
+    map_widget.set_position(users[i].wspolrzedne[0], users[i].wspolrzedne[1])
+    map_widget.set_zoom(12)
 
 
 def edytuj_uzytkownika():
@@ -159,7 +177,7 @@ label_lokalizacja_szczegoly_obiektu_wartosc.grid(row=1, column=7)
 map_widget = tkintermapview.TkinterMapView(ramka_szczegoly_obiektu, width=900, height=500)
 map_widget.set_position(52.2, 21)
 map_widget.set_zoom(8)
-marker_WAT = map_widget.set_marker(52.25462674587218, 20.900225912403783, text="WAT")
+# marker_WAT = map_widget.set_marker(52.25462674587218, 20.900225912403783, text="WAT")
 
 map_widget.grid(row=2, column=0, columnspan=8)
 
